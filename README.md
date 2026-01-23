@@ -16,7 +16,7 @@ Demo credentials:
 - Email: `demo@finbyt.app`
 - Password: `demo123456`
 
-## Key Features
+## Key Featuress
 
 - **User Authentication** - Secure JWT-based login and registration
 - **Private Portfolios** - Each user has their own protected portfolio
