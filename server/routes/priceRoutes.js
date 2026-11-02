@@ -5,14 +5,15 @@ import {
   getSupportedCryptos,
   checkSymbol
 } from '../controllers/priceController.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // GET /api/prices?symbols=btc,eth,sol - Get live prices for specific symbols
 router.get('/', getPrices);
 
-// GET /api/prices/portfolio - Get and update prices for all crypto assets in portfolio
-router.get('/portfolio', getPortfolioPrices);
+// GET /api/prices/portfolio - Get and update prices for the current user's crypto assets
+router.get('/portfolio', authenticate, getPortfolioPrices);
 
 // GET /api/prices/supported - Get list of all supported crypto symbols
 router.get('/supported', getSupportedCryptos);

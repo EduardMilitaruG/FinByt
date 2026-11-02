@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const AuthContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives next to its provider
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }) => {
           });
           setUser(response.data.user);
           setToken(storedToken);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('token');
           setToken(null);
           setUser(null);

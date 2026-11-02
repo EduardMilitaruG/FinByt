@@ -1,32 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
-// Form for creating and editing assets
+// Form for creating and editing assets. The parent passes key={asset.id}
+// when editing, so the form remounts (and repopulates) for each asset.
 function AssetForm({ asset, onSubmit, onCancel, isEdit }) {
-  const [formData, setFormData] = useState({
-    assetName: '',
-    symbol: '',
-    assetType: 'crypto',
-    quantity: '',
-    buyPrice: '',
-    currentPrice: '',
-    notes: '',
-  });
+  const [formData, setFormData] = useState(() => ({
+    assetName: asset?.assetName || '',
+    symbol: asset?.symbol || '',
+    assetType: asset?.assetType || 'crypto',
+    quantity: asset?.quantity?.toString() || '',
+    buyPrice: asset?.buyPrice?.toString() || '',
+    currentPrice: asset?.currentPrice?.toString() || '',
+    notes: asset?.notes || '',
+  }));
   const [errors, setErrors] = useState({});
-
-  // Populate form when editing
-  useEffect(() => {
-    if (asset) {
-      setFormData({
-        assetName: asset.assetName || '',
-        symbol: asset.symbol || '',
-        assetType: asset.assetType || 'crypto',
-        quantity: asset.quantity?.toString() || '',
-        buyPrice: asset.buyPrice?.toString() || '',
-        currentPrice: asset.currentPrice?.toString() || '',
-        notes: asset.notes || '',
-      });
-    }
-  }, [asset]);
 
   // Handle input changes
   const handleChange = (e) => {

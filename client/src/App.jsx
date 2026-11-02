@@ -200,6 +200,7 @@ function Dashboard() {
       {/* Edit Asset Form */}
       {editingAsset && (
         <AssetForm
+          key={editingAsset.id}
           asset={editingAsset}
           onSubmit={handleUpdateAsset}
           onCancel={() => setEditingAsset(null)}

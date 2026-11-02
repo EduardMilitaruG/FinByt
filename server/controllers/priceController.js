@@ -18,13 +18,12 @@ export const getPrices = async (req, res) => {
   }
 };
 
-// Get prices for all crypto assets in portfolio
+// Get prices for the current user's crypto assets
 export const getPortfolioPrices = async (req, res) => {
   try {
-    // Get all crypto assets from database
     const cryptoAssets = db.prepare(`
-      SELECT DISTINCT symbol FROM assets WHERE assetType = 'crypto'
-    `).all();
+      SELECT DISTINCT symbol FROM assets WHERE assetType = 'crypto' AND userId = ?
+    `).all(req.userId);
 
     if (cryptoAssets.length === 0) {
       return res.json({ prices: {}, message: 'No crypto assets in portfolio' });
@@ -36,12 +35,12 @@ export const getPortfolioPrices = async (req, res) => {
     // Update prices in database
     if (Object.keys(result.prices).length > 0) {
       const updateStmt = db.prepare(`
-        UPDATE assets SET currentPrice = ? WHERE symbol = ? AND assetType = 'crypto'
+        UPDATE assets SET currentPrice = ? WHERE symbol = ? AND assetType = 'crypto' AND userId = ?
       `);
 
       const updateMany = db.transaction((priceMap) => {
         for (const [symbol, price] of Object.entries(priceMap)) {
-          updateStmt.run(price, symbol);
+          updateStmt.run(price, symbol, req.userId);
         }
       });
 

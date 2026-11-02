@@ -1,27 +1,35 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../models/database.js';
+import { getJwtSecret, getJwtExpiry } from '../config.js';
+import { isValidEmail, normalizeEmail } from '../validation.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+const signToken = (userId) => jwt.sign({ userId }, getJwtSecret(), { expiresIn: getJwtExpiry() });
 
 export const register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
 
     // Validation
-    if (!email || !password) {
+    if (!req.body.email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    if (password.length < 6) {
+    if (!isValidEmail(req.body.email)) {
+      return res.status(400).json({ error: 'Email is not valid' });
+    }
+
+    if (typeof password !== 'string' || password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
+
+    // One account per address, whatever the casing
+    const email = normalizeEmail(req.body.email);
 
     // Check if user already exists
     const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(409).json({ error: 'Email already registered' });
     }
 
     // Hash password
@@ -33,10 +41,7 @@ export const register = async (req, res) => {
       'INSERT INTO users (email, passwordHash) VALUES (?, ?)'
     ).run(email, passwordHash);
 
-    // Generate token
-    const token = jwt.sign({ userId: result.lastInsertRowid }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRY
-    });
+    const token = signToken(result.lastInsertRowid);
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -54,12 +59,12 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     // Validation
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(normalizeEmail(email));
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -70,10 +75,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRY
-    });
+    const token = signToken(user.id);
 
     res.json({
       message: 'Login successful',
