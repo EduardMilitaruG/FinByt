@@ -1,4 +1,5 @@
 import db from '../models/database.js';
+import { isFiniteNumber, validateAsset } from '../validation.js';
 
 // Get all assets for current user
 export const getAllAssets = (req, res) => {
@@ -37,21 +38,9 @@ export const createAsset = (req, res) => {
   try {
     const { assetName, symbol, assetType, quantity, buyPrice, currentPrice, notes } = req.body;
 
-    // Validation
-    if (!assetName || !symbol || !assetType || !quantity || buyPrice === undefined) {
-      return res.status(400).json({ error: 'Missing required fields: assetName, symbol, assetType, quantity, buyPrice' });
-    }
-
-    if (!['crypto', 'stock', 'etf'].includes(assetType)) {
-      return res.status(400).json({ error: 'assetType must be crypto, stock, or etf' });
-    }
-
-    if (quantity <= 0) {
-      return res.status(400).json({ error: 'quantity must be greater than 0' });
-    }
-
-    if (buyPrice < 0) {
-      return res.status(400).json({ error: 'buyPrice cannot be negative' });
+    const validationError = validateAsset(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     const stmt = db.prepare(`
@@ -66,7 +55,7 @@ export const createAsset = (req, res) => {
       assetType,
       quantity,
       buyPrice,
-      currentPrice || buyPrice,
+      currentPrice ?? buyPrice,
       notes?.trim() || null
     );
 
@@ -93,17 +82,9 @@ export const updateAsset = (req, res) => {
       return res.status(404).json({ error: 'Asset not found' });
     }
 
-    // Validation
-    if (assetType && !['crypto', 'stock', 'etf'].includes(assetType)) {
-      return res.status(400).json({ error: 'assetType must be crypto, stock, or etf' });
-    }
-
-    if (quantity !== undefined && quantity <= 0) {
-      return res.status(400).json({ error: 'quantity must be greater than 0' });
-    }
-
-    if (buyPrice !== undefined && buyPrice < 0) {
-      return res.status(400).json({ error: 'buyPrice cannot be negative' });
+    const validationError = validateAsset(req.body, { partial: true });
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     // Update only provided fields
@@ -169,8 +150,13 @@ export const updateCryptoPrices = (req, res) => {
   try {
     const { prices } = req.body;
 
-    if (!prices || typeof prices !== 'object') {
+    if (!prices || typeof prices !== 'object' || Array.isArray(prices)) {
       return res.status(400).json({ error: 'prices object is required' });
+    }
+
+    const badEntry = Object.entries(prices).find(([, price]) => !(isFiniteNumber(price) && price >= 0));
+    if (badEntry) {
+      return res.status(400).json({ error: `price for ${badEntry[0]} must be a number >= 0` });
     }
 
     const updateStmt = db.prepare(`

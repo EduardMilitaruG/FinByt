@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { getJwtSecret } from '../config.js';
 
 export const authenticate = (req, res, next) => {
   try {
@@ -12,7 +11,7 @@ export const authenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
     req.userId = decoded.userId;
 
     next();

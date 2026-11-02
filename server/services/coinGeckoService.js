@@ -64,6 +64,12 @@ const priceCache = {
   timestamp: 0,
 };
 
+// Lets tests start from an empty cache
+export const clearPriceCache = () => {
+  priceCache.data = {};
+  priceCache.timestamp = 0;
+};
+
 // Get cache TTL from environment (default 5 minutes)
 const getCacheTTL = () => parseInt(process.env.PRICE_CACHE_TTL_MS) || 300000;
 
