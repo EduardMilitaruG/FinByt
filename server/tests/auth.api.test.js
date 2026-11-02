@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { app, createUser, request, resetDb } from './helpers.js';
+import { PASSWORD, WRONG_PASSWORD, app, createUser, request, resetDb } from './helpers.js';
 
 beforeEach(resetDb);
 
@@ -8,7 +8,7 @@ describe('POST /api/auth/register', () => {
   it('creates a user and returns a token that works on /me', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'ana@test.dev', password: 'secret123' })
+      .send({ email: 'ana@test.dev', password: PASSWORD })
       .expect(201);
 
     expect(res.body.user).toMatchObject({ email: 'ana@test.dev' });
@@ -20,21 +20,21 @@ describe('POST /api/auth/register', () => {
 
   it('returns 409 for an email that is already registered', async () => {
     await createUser('ana@test.dev');
-    const res = await request(app).post('/api/auth/register').send({ email: 'ana@test.dev', password: 'secret123' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'ana@test.dev', password: PASSWORD });
     expect(res.status).toBe(409);
   });
 
   // Regression: emails were stored as typed, so Ana@Test.dev opened a second account.
   it('treats email addresses case-insensitively', async () => {
     await createUser('ana@test.dev');
-    await request(app).post('/api/auth/register').send({ email: 'Ana@Test.DEV', password: 'secret123' }).expect(409);
-    await request(app).post('/api/auth/login').send({ email: ' ANA@test.dev ', password: 'secret123' }).expect(200);
+    await request(app).post('/api/auth/register').send({ email: 'Ana@Test.DEV', password: PASSWORD }).expect(409);
+    await request(app).post('/api/auth/login').send({ email: ' ANA@test.dev ', password: PASSWORD }).expect(200);
   });
 
   it.each([
     ['no body', {}],
     ['no password', { email: 'ana@test.dev' }],
-    ['not an email', { email: 'ana', password: 'secret123' }],
+    ['not an email', { email: 'ana', password: PASSWORD }],
     ['5-char password', { email: 'ana@test.dev', password: '12345' }],
     // Regression: a numeric password reached bcrypt and crashed with 500.
     ['numeric password', { email: 'ana@test.dev', password: 12345678 }],
@@ -50,15 +50,15 @@ describe('POST /api/auth/register', () => {
 
 describe('POST /api/auth/login', () => {
   it('logs in with the right password', async () => {
-    await createUser('ana@test.dev', 'secret123');
-    const res = await request(app).post('/api/auth/login').send({ email: 'ana@test.dev', password: 'secret123' }).expect(200);
+    await createUser('ana@test.dev', PASSWORD);
+    const res = await request(app).post('/api/auth/login').send({ email: 'ana@test.dev', password: PASSWORD }).expect(200);
     expect(res.body.token).toBeTruthy();
   });
 
   it('gives the same 401 for a wrong password and an unknown user', async () => {
-    await createUser('ana@test.dev', 'secret123');
-    const wrongPassword = await request(app).post('/api/auth/login').send({ email: 'ana@test.dev', password: 'nope123' });
-    const unknownUser = await request(app).post('/api/auth/login').send({ email: 'bob@test.dev', password: 'nope123' });
+    await createUser('ana@test.dev', PASSWORD);
+    const wrongPassword = await request(app).post('/api/auth/login').send({ email: 'ana@test.dev', password: WRONG_PASSWORD });
+    const unknownUser = await request(app).post('/api/auth/login').send({ email: 'bob@test.dev', password: WRONG_PASSWORD });
 
     expect(wrongPassword.status).toBe(401);
     expect(unknownUser.status).toBe(401);

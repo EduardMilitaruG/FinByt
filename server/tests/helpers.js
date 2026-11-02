@@ -8,10 +8,14 @@ export const resetDb = () => {
   db.exec('DELETE FROM assets; DELETE FROM users;');
 };
 
+// Fixture passwords for the in-memory test database only.
+export const PASSWORD = 'correct-horse';
+export const WRONG_PASSWORD = 'battery-staple';
+
 let counter = 0;
 
 /** Registers a fresh user and returns { token, user, auth } where auth is the header value. */
-export const createUser = async (email = `user${++counter}@test.dev`, password = 'secret123') => {
+export const createUser = async (email = `user${++counter}@test.dev`, password = PASSWORD) => {
   const res = await request(app).post('/api/auth/register').send({ email, password }).expect(201);
   return { ...res.body, auth: `Bearer ${res.body.token}` };
 };
